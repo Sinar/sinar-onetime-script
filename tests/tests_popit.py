@@ -6,20 +6,23 @@ from mock import patch, Mock
 class PopitOneTimeTests(unittest.TestCase):
 
     def setUp(self):
-        input_data = {}
-        input_data["birth_date"] = "1974-01-01"
-        input_data["death_date"] = None
-        input_data["end_date"] = "Some other date"
-        input_data["founding_date"] = "2000"
+        input_data = dict(
+            birth_date="1974-01-01",
+            death_date= None,
+            end_date="Some other date",
+            founding_date="2000",
+            url="http://www.testurl.com",
+            html_url="http://www.htmlurl.com",
+            area=dict(id="12345"))
         self.input_data = input_data
 
     def tearDown(self):
         pass
 
-    def mock_response(self, data, headers):
+    def mock_response(self, data, headers, status_code=200):
 
         response = Mock
-        response.status_code = 200
+        response.status_code = status_code
         response.data = data
         response.headers = headers
         return response
@@ -30,12 +33,26 @@ class PopitOneTimeTests(unittest.TestCase):
 
         from popit.popit_json_importer import data_messager
         result = data_messager(self.input_data, "links")
+
         expected_result = {'birth_date': '1974-01-01',
                            'founding_date': '2000',
                            'death_date': '0000-00-00',
-                           'end_date': '0000-00-00'}
+                           'end_date': '0000-00-00',
+                           'url': 'http://www.testurl.com',
+                           'html_url': 'http://www.htmlurl.com',
+                           'area':
+                               {'id': '12345'}}
 
         self.assertEqual(result, expected_result)
+        for item in ('url', 'html_url'):
+            self.assertIn(item, result)
+
+        result_no_links = data_messager(self.input_data, "area")
+        for item in ('url', 'html_url'):
+            self.assertNotIn(item, result_no_links)
+
+        self.assertIn('area', result_no_links)
+
 
     @patch("popit.popit_json_importer.requests.post", mock_response)
     @patch("popit.popit_json_importer.data_messager")
